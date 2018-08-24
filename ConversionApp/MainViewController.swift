@@ -191,8 +191,7 @@ class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDa
         return true
     }
     
-    @IBAction func submit(_ sender: UIButton) {
-        
+    func calculate() {
         let fromCurrency = currencys.filter { (currency) -> Bool in
             return currency.currency_code == fromCode
         }
@@ -233,8 +232,16 @@ class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDa
             alertController.addAction(okAction)
             present(alertController, animated: true, completion: nil)
         }
-        
     }
+    
+    @IBAction func submit(_ sender: UIButton) {
+        calculate()
+    }
+    
+    @IBAction func doneTapped(_ sender: UITextField) {
+        calculate()
+    }
+    
     
     enum Rate {
         case buying
