@@ -12,7 +12,7 @@ import CoreData
 import SwiftyJSON
 import MBProgressHUD
 
-class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
+class MainViewController: UIViewController {
     
     @IBOutlet weak var fromCurrencyPicker: UIPickerView!
     @IBOutlet weak var toCurrencyPicker: UIPickerView!
@@ -80,7 +80,6 @@ class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDa
     }
     
     func downloadCurrencys() {
-        
         MBProgressHUD.showAdded(to: self.view, animated: true)
         
         let apiURL = URL(string: "http://hnbex.eu/api/v1/rates/daily")
@@ -146,7 +145,6 @@ class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDa
     }
     
     func deleteData() {
-        
         let appDel:AppDelegate = (UIApplication.shared.delegate as! AppDelegate)
         let context:NSManagedObjectContext = appDel.persistentContainer.viewContext
         let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: "Currency")
@@ -162,33 +160,6 @@ class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDa
         } catch let error as NSError {
             print("Error : \(error) \(error.userInfo)")
         }
-    }
-    
-    func numberOfComponents(in pickerView: UIPickerView) -> Int {
-        return 1
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
-        return currencyCodes.count
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
-        return currencyCodes[row]
-    }
-    
-    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
-        if pickerView == fromCurrencyPicker {
-            fromCode = currencyCodes[row]
-        }
-        else {
-            toCode = currencyCodes[row]
-        }
-        resultLabel.text = "0"
-    }
-    
-    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        currencyValue.resignFirstResponder()
-        return true
     }
     
     func calculate() {
@@ -242,9 +213,37 @@ class MainViewController: UIViewController, UIPickerViewDelegate, UIPickerViewDa
         calculate()
     }
     
-    
     enum Rate {
         case buying
         case selling
     }    
+}
+
+extension MainViewController: UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
+    func numberOfComponents(in pickerView: UIPickerView) -> Int {
+        return 1
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, numberOfRowsInComponent component: Int) -> Int {
+        return currencyCodes.count
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, titleForRow row: Int, forComponent component: Int) -> String? {
+        return currencyCodes[row]
+    }
+    
+    func pickerView(_ pickerView: UIPickerView, didSelectRow row: Int, inComponent component: Int) {
+        if pickerView == fromCurrencyPicker {
+            fromCode = currencyCodes[row]
+        }
+        else {
+            toCode = currencyCodes[row]
+        }
+        resultLabel.text = "0"
+    }
+    
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        currencyValue.resignFirstResponder()
+        return true
+    }
 }
