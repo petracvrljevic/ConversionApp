@@ -26,7 +26,7 @@ class MainViewController: UIViewController {
     
     var fromCode = ""
     var toCode = ""
-    var selectedRate : Rate?
+    var selectedRate = Rate.buying
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -82,19 +82,20 @@ class MainViewController: UIViewController {
     func downloadCurrencys() {
         MBProgressHUD.showAdded(to: self.view, animated: true)
         
-        let apiURL = URL(string: "http://hnbex.eu/api/v1/rates/daily")
+        let apiURL = URL(string: "http://hnbex.eu/api/v1/rates/daily")!
         
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
         let context = appDelegate.persistentContainer.viewContext
         
         let entity = NSEntityDescription.entity(forEntityName: "Currency", in: context)
         
-        Alamofire.request(apiURL!, method: .get).responseJSON { (response) in
+        Alamofire.request(apiURL, method: .get).responseJSON { (response) in
             
             MBProgressHUD.hide(for: self.view, animated: true)
             
             if response.result.isSuccess {
-                let currencys = JSON(response.result.value!).arrayObject as [AnyObject]?
+                guard let value = response.result.value else { return }
+                let currencys = JSON(value).arrayObject as [AnyObject]?
                 if let currencys = currencys {
                     for currency in currencys {
                         let newCurrency = NSManagedObject(entity: entity!, insertInto: context)
@@ -133,7 +134,9 @@ class MainViewController: UIViewController {
         }
         
         for currency in currencys {
-            currencyCodes.append(currency.currency_code!)
+            if let code = currency.currency_code {
+                currencyCodes.append(code)
+            }
         }
         
         currencyCodes.sort { $0 < $1 }
@@ -179,23 +182,32 @@ class MainViewController: UIViewController {
             let fromRate: Double
             let toRate: Double
             
-            let fromUnit = Double((fromCurrency.first?.unit_value)!)
-            let toUnit = Double((toCurrency.first?.unit_value)!)
-            
-            switch selectedRate! {
-            case .buying:
-                fromRate = fromUnit != 1 ? (Double((fromCurrency.first?.buying_rate)!)! / fromUnit) : Double((fromCurrency.first?.buying_rate)!)!
+            if let unitFrom = fromCurrency.first?.unit_value, let unitTo = toCurrency.first?.unit_value, let buyingFrom = fromCurrency.first?.buying_rate, let buyingTo = toCurrency.first?.buying_rate, let sellingFrom = fromCurrency.first?.selling_rate, let sellingTo = toCurrency.first?.selling_rate {
+                let fromUnit = Double(unitFrom)
+                let toUnit = Double(unitTo)
                 
-                toRate = toUnit != 1 ? (Double((toCurrency.first?.buying_rate)!)! / toUnit): Double((toCurrency.first?.buying_rate)!)!
-            case .selling:
-                fromRate = fromUnit != 1 ? (Double((fromCurrency.first?.selling_rate)!)! / fromUnit) : Double((fromCurrency.first?.selling_rate)!)!
+                guard let fromBuying = Double(buyingFrom) else { return }
+                guard let toBuying = Double(buyingTo) else { return }
                 
-                toRate = toUnit != 1 ? (Double((toCurrency.first?.selling_rate)!)! / toUnit): Double((toCurrency.first?.selling_rate)!)!
+                guard let fromSelling = Double(sellingFrom) else { return }
+                guard let toSelling = Double(sellingTo) else { return }
+                
+                switch selectedRate {
+                case .buying:
+                    fromRate = fromUnit != 1 ? (fromBuying / fromUnit) : fromBuying
+                    
+                    toRate = toUnit != 1 ? (toBuying / toUnit) : toBuying
+                case .selling:
+                    fromRate = fromUnit != 1 ? (fromSelling / fromUnit) : fromSelling
+                    
+                    toRate = toUnit != 1 ? (toSelling / toUnit): toSelling
+                }
+                
+                if let value = value {
+                    let result = ((value*fromRate)/toRate)
+                    resultLabel.text = "\(value) " + fromCode + " = " + " \(result) " + toCode
+                } 
             }
-            
-            
-            let result = ((value!*fromRate)/toRate)
-            resultLabel.text = "\(value!) " + fromCode + " = " + " \(result) " + toCode
         }
         else {
             let alertController = UIAlertController(title: "Warning", message: "You need to enter value!", preferredStyle: .alert)
@@ -220,6 +232,7 @@ class MainViewController: UIViewController {
 }
 
 extension MainViewController: UIPickerViewDelegate, UIPickerViewDataSource, UITextFieldDelegate {
+    
     func numberOfComponents(in pickerView: UIPickerView) -> Int {
         return 1
     }
